@@ -1,6 +1,8 @@
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import HomePage from './pages/HomePage';
+import ProfilePage from "./pages/ProfilePage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 
 import FloatingShape from "./components/FloatingShape";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
@@ -106,6 +108,8 @@ const App = () => {
 				{/* catch all routes */}
 				<Route path='*' element={<Navigate to='/' replace />} />
         		<Route path='/' element={authUser ? <HomePage/> : <Navigate to = "/login" />}/>
+				<Route path="/profile" element={<ProfilePage />} />
+				<Route path="/settings" element={<SettingsPage />} />
 			</Routes>
 			<Toaster />
 		</div>
