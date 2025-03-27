@@ -1,5 +1,5 @@
 import { transporter } from "./email.config.js";
-import { VERIFICATION_EMAIL_TEMPLATE, WELCOME_EMAIL_TEMPLATE, PASSWORD_RESET_REQUEST_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE } from "./emailTemplate.js";
+import { VERIFICATION_EMAIL_TEMPLATE, WELCOME_EMAIL_TEMPLATE, PASSWORD_RESET_REQUEST_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE, PASSWORD_RESET_OTP_TEMPLATE } from "./emailTemplate.js";
 
 
 export const sendVerificationEmail = async(email,verificationCode)=>{
@@ -68,3 +68,24 @@ export const sendResetSuccessEmail = async (email) => {
 		throw new Error(`Error sending password reset success email: ${error}`);
 	}
 };
+export const sendPasswordResetOTPEmail = async (email, otp) => {
+    try {
+        const emailContent = PASSWORD_RESET_OTP_TEMPLATE.replace("{otp}", otp); // ✅ Replace `{otp}`
+
+        const response = await transporter.sendMail({
+            from: '"Chat Friendly" <chatfriendlybits@gmail.com>',
+            to: email,
+            subject: "Your OTP for Password Reset",
+            text: `Your OTP for password reset is: ${otp}`,  // ✅ Send OTP in plain text
+            html: emailContent,  // ✅ Send the updated email template
+            category: "Password Reset",
+        });
+
+        console.log(`✅ Password reset OTP email sent successfully to ${email}`);
+    } catch (error) {
+        console.error(`❌ Error sending password reset OTP email`, error);
+        throw new Error(`Error sending password reset OTP email: ${error}`);
+    }
+};
+
+

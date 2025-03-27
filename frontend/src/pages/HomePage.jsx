@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPhoneAlt, FaVideo, FaPhone, FaComments, FaRobot, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa"; // Call Icons
+import { FaPhoneAlt, FaVideo, FaPhone, FaComments, FaRobot, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa";
 import logo from '../assets/logo.png';
+import { useAuthStore } from "../store/authStore";
 
 function HomePage() {
   const navigate = useNavigate();
@@ -18,12 +19,16 @@ function HomePage() {
     setActiveChat(chats.find(chat => chat.id === chatId));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    alert("Logged out successfully!");
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await useAuthStore.getState().logout(); 
+      navigate('/login');
+    } catch (error) {
+      console.error("Logout failed:", error);
+      alert("Logout failed, please try again.");
+    }
   };
+
 
   return (
     <div className="flex h-screen w-screen bg-gray-900 text-white">
@@ -60,10 +65,10 @@ function HomePage() {
                   <button onClick={() => setShowSidebar(false)} className="text-white text-2xl">✖</button>
                 </div>
 
-                {/* Sidebar Menu Items */}
+                {/* Sidebar Menu */}
                 <div className="flex flex-col justify-between h-full">
                   <ul className="mt-4">
-                    <li className="px-6 py-3 hover:bg-gray-700 cursor-pointer flex items-center" onClick={() => navigate("/")}>
+                    <li className="px-6 py-3 hover:bg-gray-700 cursor-pointer flex items-center" onClick={() => navigate("/homepage")}>
                       <FaComments className="mr-2" /> Chats
                     </li>
                     <li className="px-6 py-3 hover:bg-gray-700 cursor-pointer flex items-center" onClick={() => navigate("/calls")}>

@@ -23,30 +23,36 @@ export const useAuthStore = create((set) => ({
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
+
     try {
-      const response = await axiosInstance.post(`/auth/login`, { email, password });
-      set({
-        isAuthenticated: true,
-        user: response.data.user,
-        error: null,
-        isLoading: false,
-      });
+        const response = await axiosInstance.post(`/auth/login`, { email, password });
+
+        localStorage.setItem("token", response.data.token);
+
+        set({
+            isAuthenticated: true,
+            user: response.data.user,
+            error: null,
+            isLoading: false,
+        });
     } catch (error) {
-      set({ error: error.response?.data?.message || "Error logging in", isLoading: false });
-      throw error;
+        set({ error: error.response?.data?.message || "Error logging in", isLoading: false });
+        throw error;
     }
   },
+
 
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
-      await axiosInstance.post(`/auth/logout`, {}, { withCredentials: true }); // ✅ Ensure cookies are cleared
+      await axiosInstance.post(`/auth/logout`, {}, { withCredentials: true });
       set({ user: null, isAuthenticated: false, error: null, isLoading: false });
     } catch (error) {
       set({ error: "Error logging out", isLoading: false });
       throw error;
     }
   },
+  
 
   verifyEmail: async (code) => {
     set({ isLoading: true, error: null });
@@ -62,36 +68,76 @@ export const useAuthStore = create((set) => ({
 
   checkAuth: async () => {
     set({ isCheckingAuth: true, error: null });
+
     try {
-      const response = await axiosInstance.get(`/auth/check-auth`, {
-        withCredentials: true,  // ✅ Sends authentication cookies
-      });
-      set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
+        const response = await axiosInstance.get(`/auth/check-auth`, {
+            withCredentials: true, 
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            },
+        });
+
+        set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
     } catch (error) {
-      console.error("Auth check failed:", error.response?.data || error.message);
-      set({ error: "Unauthorized", isCheckingAuth: false, isAuthenticated: false });
+        console.error("❌ Auth check failed:", error.response?.data || error.message);
+        set({ error: "Unauthorized", isCheckingAuth: false, isAuthenticated: false });
     }
   },
 
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
-    try {
-      const response = await axiosInstance.post(`/auth/forgot-password`, { email });
-      set({ message: response.data.message, isLoading: false });
-    } catch (error) {
-      set({ error: error.response?.data?.message || "Error sending reset password email", isLoading: false });
-      throw error;
-    }
-  },
 
-  resetPassword: async (token, password) => {
-    set({ isLoading: true, error: null });
     try {
-      const response = await axiosInstance.post(`/auth/reset-password/${token}`, { password });
-      set({ message: response.data.message, isLoading: false });
+        const response = await axiosInstance.post(`/auth/forgot-password`, { email });
+
+        set({ message: response.data.message, isLoading: false });
+        return response.data;
     } catch (error) {
-      set({ error: error.response?.data?.message || "Error resetting password", isLoading: false });
-      throw error;
+        console.error("❌ Error in forgotPassword API:", error.response?.data || error.message);
+        set({ error: error.response?.data?.message || "Failed to send OTP", isLoading: false });
+        throw error;
     }
-  },  
+},
+
+
+resetPassword: async (email, otp, password) => {
+  set({ isLoading: true, error: null });
+
+  if (!email || !otp || !password) {
+      set({ error: "All fields are required", isLoading: false });
+      return { success: false, message: "All fields are required" };
+  }
+
+  try {
+      const response = await axiosInstance.post(`/auth/reset-password`, {
+          email,
+          otp,
+          password,
+      });
+
+      set({ message: response.data.message, isLoading: false });
+      return response.data;
+  } catch (error) {
+      console.error("❌ Error in resetPassword API:", error.response?.data || error.message);
+      set({ error: error.response?.data?.message || "Failed to reset password", isLoading: false });
+      return { success: false, message: error.response?.data?.message || "Failed to reset password" };
+  }
+},
+
+
+verifyOtp: async (email, otp) => {
+  set({ isLoading: true, error: null });
+
+  try {
+      const response = await axiosInstance.post(`/auth/verify-otp`, { email, otp });
+      set({ message: "OTP verified", isLoading: false });
+
+      return response.data.resetToken; 
+  } catch (error) {
+      set({ error: "Invalid or expired OTP", isLoading: false });
+      throw error;
+  }
+},
+
+
 }));
