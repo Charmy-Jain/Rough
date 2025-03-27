@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 import {
-    sendPasswordResetEmail,
     sendResetSuccessEmail,
     sendVerificationEmail,
     sendWelcomeEmail,
