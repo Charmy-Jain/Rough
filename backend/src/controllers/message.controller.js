@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
 import cloudinary from "cloudinary";
+import Conversation from "../models/conversation.model.js";
 
 export const getUsersForSidebar = async (req, res) => {
     try {
@@ -33,14 +34,29 @@ export const getMessages = async (req,res) => {
     }
 };
 
-export const sendMessage = async (req,res) => {
+export const sendMessage = async (req, res) => {
     try {
-        const{ text, image } = req.body;
-        const{ id: receiverId } = req.params;
-        const senderId = req.user._id;
+        console.log("User sending message:", req.user);  // Debugging line
+        const { text, image } = req.body;
+        const { id: receiverId } = req.params;
+        const senderId = req.user._id;  // Check if req.user exists
+
+        if (!senderId) {
+            return res.status(401).json({ error: "Unauthorized - No sender ID found" });
+        }
+
+        let conversation = await Conversation.findOne({
+            members: { $all: [senderId, receiverId] }
+        });
+
+        if (!conversation) {
+            conversation = await Conversation.create({
+                members: [senderId, receiverId],
+            });
+        }
 
         let imageUrl;
-        if(image){
+        if (image) {
             const uploadResponse = await cloudinary.uploader.upload(image);
             imageUrl = uploadResponse.secure_url;
         }
@@ -49,17 +65,22 @@ export const sendMessage = async (req,res) => {
             senderId,
             receiverId,
             text,
-            image:imageUrl,
+            image: imageUrl,
         });
 
-        await newMessage.save();
+        if (newMessage) {
+            conversation.messages.push(newMessage._id);
+        }
 
-        //todo: realtime functionality goes here => socket.io
+        await Promise.all([conversation.save(), newMessage.save()]);
 
-        res.status(201).json(newMessage);
+        res.status(201).json({
+            message: "Message sent successfully",
+            newMessage
+        });
 
     } catch (error) {
         console.log("Error in sendMessage controller: ", error.message);
-        res.status(500).json({error: "Internal server error"});
+        res.status(500).json({ error: "Internal server error" });
     }
 };
