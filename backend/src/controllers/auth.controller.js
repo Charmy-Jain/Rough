@@ -236,19 +236,33 @@ export const resetPassword = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const {profilePic} = req.body;
+        const { name, status, profilePic } = req.body;
         const userId = req.user._id;
 
-        if (!profilePic) {
-            return res.status(400).json({ message: "Profile pic is required" });  
+        // Validation: Ensure at least one field is provided
+        if (!name && !status && !profilePic) {
+            return res.status(400).json({ message: "No update data provided" });
         }
 
-        const uploadResponse = await cloudinary.uploader.upload(profilePic)
-        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadResponse.secure_url}, {new:true});
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (status) updateData.status = status;
 
-        res.status(200).json(updatedUser);
+        // Handle profilePic upload to Cloudinary if provided
+        if (profilePic) {
+            const uploadResponse = await cloudinary.uploader.upload(profilePic);
+            updateData.profilePic = uploadResponse.secure_url;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, updatedUser });
     } catch (error) {
-        console.log("Error in updateProfile controller", error);
+        console.error("Error in updateProfile controller:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };

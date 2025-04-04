@@ -6,9 +6,9 @@ export const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
   error: null,
-  isLoading: false,
+  // isLoading: false,
   isCheckingAuth: true,
-  message: null,
+  // message: null,
 
   signup: async (email, password, name) => {
     set({ isLoading: true, error: null });
@@ -70,7 +70,7 @@ export const useAuthStore = create((set) => ({
     set({ isCheckingAuth: true, error: null });
 
     try {
-        const response = await axiosInstance.get(`/auth/check-auth`, {
+        const response = await axiosInstance.get('/auth/check-auth', {
             withCredentials: true, 
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
@@ -83,6 +83,8 @@ export const useAuthStore = create((set) => ({
         set({ error: "Unauthorized", isCheckingAuth: false, isAuthenticated: false });
     }
   },
+
+
 
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });

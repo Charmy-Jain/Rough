@@ -1,22 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPhoneAlt, FaVideo, FaPhone, FaComments, FaRobot, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa";
 import logo from '../assets/logo.png';
 import { useAuthStore } from "../store/authStore";
+import { axiosInstance } from "../utils/axios";
+import defaultAvatar from "../assets/avtar.png";
 
 function HomePage() {
   const navigate = useNavigate();
   const [activeChat, setActiveChat] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [chats, setChats] = useState([
-    { id: 1, name: 'John Doe', lastMessage: 'Hey there!', timestamp: '10:30 AM', avatar: 'https://via.placeholder.com/50/4CAF50/FFFFFF?text=JD' },
-    { id: 2, name: 'Jane Smith', lastMessage: 'How are you?', timestamp: '9:15 AM', avatar: 'https://via.placeholder.com/50/4CAF50/FFFFFF?text=JS' },
-    { id: 3, name: 'Group Chat', lastMessage: 'Meeting at 2 PM', timestamp: 'Yesterday', avatar: 'https://via.placeholder.com/50/4CAF50/FFFFFF?text=GC' },
-    { id: 4, name: 'Support', lastMessage: "We'll get back to you soon.", timestamp: '2 days ago', avatar: 'https://via.placeholder.com/50/4CAF50/FFFFFF?text=S' },
-  ]);
+  const [chats, setChats] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+  const { user } = useAuthStore();
 
-  const handleChatClick = (chatId) => {
-    setActiveChat(chats.find(chat => chat.id === chatId));
+  useEffect(() => {
+      const fetchChats = async () => {
+        try {
+          const response = await axiosInstance.get("/message/users", {
+            withCredentials: true,
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          });
+          setChats(response.data);
+        } catch (error) {
+          console.error("Error fetching chats:", error.response?.data || error.message);
+        }
+      };
+      fetchChats();
+  }, []);
+
+  const handleChatClick = async (chatUser) => {
+    setActiveChat(chatUser);
+    try {
+      const response = await axiosInstance.get(`/message/${chatUser._id}`, {
+      withCredentials: true,
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    setMessages(response.data);
+    } catch (error) {
+      console.error("Error fetching messages:", error.response?.data || error.message);
+    }
+  };
+
+  const sendMessage = async () => {
+      if (!activeChat || !message.trim()) return;
+  
+      try {
+        const response = await axiosInstance.post(`/message/send/${activeChat._id}`, { text: message }, {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+  
+        setMessages([...messages, response.data.newMessage]); 
+        setMessage("");
+      } catch (error) {
+        console.error("Error sending message:", error.response?.data || error.message);
+      }
   };
 
   const handleLogout = async () => {
@@ -105,18 +145,19 @@ function HomePage() {
           </div>
 
           {/* Chat List */}
-          {chats.map((chat) => (
+          {chats.map((chatUser) => (
             <div
-              key={chat.id}
-              className={`flex items-center p-3 cursor-pointer hover:bg-gray-800 ${activeChat && activeChat.id === chat.id ? "bg-green-900" : ""}`}
-              onClick={() => handleChatClick(chat.id)}
+              key={chatUser._id || chatUser.email}
+              className={`flex items-center p-3 cursor-pointer hover:bg-gray-800 ${activeChat?._id === chatUser.id}`}
+              onClick={() => handleChatClick(chatUser)}
             >
-              <img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-full mr-3" />
+              <img src={chatUser.avatar || defaultAvatar} alt={chatUser.name} className="w-12 h-12 rounded-full mr-3" />
               <div className="flex-1">
-                <p className="font-semibold text-white">{chat.name}</p>
-                <p className="text-sm text-gray-400 truncate">{chat.lastMessage}</p>
+                <p className="font-semibold text-white">{chatUser.name}</p>
+                <p className="text-sm text-gray-400">{chatUser.email}</p>
+                <p className="text-sm text-gray-400 truncate">{chatUser.lastMessage}</p>
               </div>
-              <p className="text-xs text-gray-500">{chat.timestamp}</p>
+              <p className="text-xs text-gray-500">{chatUser.timestamp}</p>
             </div>
           ))}
         </div>
@@ -128,7 +169,7 @@ function HomePage() {
             {/* Chat Header with Call Buttons */}
             <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-4 py-3 flex justify-between items-center">
               <div className="flex items-center">
-                <img src={activeChat.avatar} alt={activeChat.name} className="w-10 h-10 rounded-full mr-3" />
+                <img src={activeChat.avatar || defaultAvatar} alt={activeChat.name} className="w-10 h-10 rounded-full mr-3" />
                 <h2 className="text-lg font-semibold">{activeChat.name}</h2>
               </div>
               {/* Square Call Buttons */}
@@ -144,25 +185,25 @@ function HomePage() {
 
             {/* Chat Messages */}
             <div className="p-4 overflow-y-auto h-[calc(100vh-10rem)]">
-              <div className="mb-4 flex items-start">
-                <div className="bg-gray-700 text-white p-3 rounded-lg max-w-xs shadow-md">
-                  This is a sample message from {activeChat.name}.
+              {messages.map((msg) => (
+                <div key={msg._id} className={`mb-4 flex ${msg.senderId === user._id ? "justify-end" : ""}`}>
+                  <div className={`p-3 rounded-lg max-w-xs shadow-md ${msg.senderId === user._id ? "bg-green-500" : "bg-gray-700"}`}>
+                    {msg.text}
+                  </div>
                 </div>
-              </div>
-              <p className="text-xs text-gray-500 ml-3">11:02 AM</p>
-
-              <div className="mb-4 flex justify-end">
-                <div className="bg-green-500 text-white p-3 rounded-lg max-w-xs shadow-md">
-                  And here's a reply from you!
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 text-right mr-3">11:05 AM</p>
+              ))}
             </div>
 
             {/* Message Input */}
             <div className="sticky bottom-0 bg-gray-900 p-4 border-t border-gray-700 flex items-center">
-              <input type="text" placeholder="Type a message..." className="flex-1 px-3 py-2 bg-gray-800 rounded-l-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-              <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-r-md focus:outline-none focus:shadow-outline">
+              <input 
+                type="text" 
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type a message..." 
+                className="flex-1 px-3 py-2 bg-gray-800 rounded-l-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" 
+              />
+              <button onClick={sendMessage} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-r-md focus:outline-none focus:shadow-outline">
                 Send
               </button>
             </div>

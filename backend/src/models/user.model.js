@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        status: {
+            type: String,
+            default: "Hey there! I'm using Chat Friendly.", 
+        },    
         password: { 
             type: String,
             required: true
@@ -25,7 +29,7 @@ const userSchema = new mongoose.Schema(
         },
         profilePic: {
             type: String,
-            default: "",
+            default: "/assets/default-avatar.png",
         },
         resetPasswordToken: String,
 		resetPasswordExpiresAt: Date,
