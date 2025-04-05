@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPhoneAlt, FaVideo, FaPhone, FaComments, FaRobot, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa";
 import logo from '../assets/logo.png';
@@ -13,6 +13,8 @@ function HomePage() {
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -68,6 +70,11 @@ function HomePage() {
       alert("Logout failed, please try again.");
     }
   };
+
+  const filteredChats = chats.filter((chat) =>
+    chat.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
 
 
   return (
@@ -139,19 +146,21 @@ function HomePage() {
           <div className="p-4">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search by email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 bg-gray-800 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
           {/* Chat List */}
-          {chats.map((chatUser) => (
+          {filteredChats.map((chatUser) => (
             <div
               key={chatUser._id || chatUser.email}
               className={`flex items-center p-3 cursor-pointer hover:bg-gray-800 ${activeChat?._id === chatUser.id}`}
               onClick={() => handleChatClick(chatUser)}
             >
-              <img src={chatUser.avatar || defaultAvatar} alt={chatUser.name} className="w-12 h-12 rounded-full mr-3" />
+              <img src={chatUser.profilePic || defaultAvatar} alt={chatUser.name} className="w-12 h-12 rounded-full mr-3" />
               <div className="flex-1">
                 <p className="font-semibold text-white">{chatUser.name}</p>
                 <p className="text-sm text-gray-400">{chatUser.email}</p>
@@ -160,6 +169,7 @@ function HomePage() {
               <p className="text-xs text-gray-500">{chatUser.timestamp}</p>
             </div>
           ))}
+
         </div>
 
       {/* Main Chat Window */}
@@ -169,7 +179,7 @@ function HomePage() {
             {/* Chat Header with Call Buttons */}
             <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-4 py-3 flex justify-between items-center">
               <div className="flex items-center">
-                <img src={activeChat.avatar || defaultAvatar} alt={activeChat.name} className="w-10 h-10 rounded-full mr-3" />
+                <img src={activeChat.profilePic || defaultAvatar} alt={activeChat.name} className="w-10 h-10 rounded-full mr-3" />
                 <h2 className="text-lg font-semibold">{activeChat.name}</h2>
               </div>
               {/* Square Call Buttons */}

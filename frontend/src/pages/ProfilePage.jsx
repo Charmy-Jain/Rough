@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "../store/authStore";
@@ -7,7 +7,7 @@ import defaultAvatar from "../assets/avtar.png";
 
 function ProfilePage() {
   const navigate = useNavigate();
-  const { user } = useAuthStore(); // Access user from the store
+  const { user } = useAuthStore(); 
 
   // Initialize states based on the current user's data
   const [newName, setNewName] = useState(user?.name || "");
@@ -21,8 +21,9 @@ function ProfilePage() {
         const response = await axiosInstance.get("/auth/profile", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        setNewName(response.data.user.name); // Sync name
-        setNewStatus(response.data.user.status); // Sync status
+        setNewName(response.data.user.name); 
+        setNewStatus(response.data.user.status);
+        setImage(response.data.user.profilePic);
       } catch (error) {
         console.error("Error fetching user profile:", error.message);
       }
@@ -31,42 +32,62 @@ function ProfilePage() {
     fetchUserProfile();
   }, []);
 
+
   // Handle Profile Image Upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setImage(imageUrl);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result); 
+      };
+      reader.readAsDataURL(file);
     }
   };
-
-  // Handle Save Changes
+  
+  //Handle Save Changes
   const handleSaveChanges = async () => {
     try {
-        const response = await axiosInstance.put(
-            "/auth/update-profile",
-            {
-                name: newName,
-                status: newStatus,
-                profilePic: image || user?.profilePic, // Optional profilePic
-            },
-            {
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            }
-        );
-        const updatedUser = response.data.updatedUser;
+        const updatedData = {};
 
-        // Optionally update the UI with new values
-        setNewName(updatedUser.name);
-        setNewStatus(updatedUser.status);
-        setImage(updatedUser.profilePic);
+        if (newName !== user?.name) updatedData.name = newName;
+        if (newStatus !== user?.status) updatedData.status = newStatus;
+        if (image !== user?.profilePic) updatedData.profilePic = image;
 
-        alert("Profile updated successfully!");
+        if (Object.keys(updatedData).length === 0) {
+            alert("No changes made.");
+            return;
+        }
+
+        const response = await axiosInstance.put("/auth/update-profile", updatedData, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+
+        console.log("✅ Full Response from Backend:", response.data);
+
+        const updatedUser = response.data?.updatedUser;
+
+        if (updatedUser) {
+            console.log("✅ Updated User Received:", updatedUser);
+
+            setNewName(updatedUser.name);
+            setNewStatus(updatedUser.status);
+            setImage(updatedUser.profilePic);
+
+            useAuthStore.getState().updateUser(updatedUser);
+
+            alert("Profile updated successfully!");
+        } else {
+            console.warn("❌ No updated user received from backend, check response.");
+            alert(response.data?.message || "Profile updated, but data might be stale.");
+        }
     } catch (error) {
-        console.error("Error updating profile:", error.message);
+        console.error("❌ Error updating profile:", error.response?.data || error.message);
         alert("Failed to update profile. Please try again.");
     }
 };
+
+
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-green-900 via-gray-900 to-black text-white p-4">
@@ -79,7 +100,7 @@ function ProfilePage() {
         </button>
         <div className="text-center mb-6 mt-2">
           <h1 className="text-2xl font-bold text-green-500">Profile</h1>
-          <p className="text-gray-400">Update your details</p>
+          <p className="text-gray-400">Manage your profile information</p>
         </div>
         <div className="flex justify-center mb-4">
           <label htmlFor="avatar-upload" className="cursor-pointer">

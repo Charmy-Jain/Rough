@@ -125,6 +125,7 @@ export const login = async (req, res) => {
 		res.status(200).json({
 			success: true,
 			message: "Logged in successfully",
+			token,
 			user: {
 				_id: user._id,
 				email: user.email,
@@ -233,39 +234,55 @@ export const resetPassword = async (req, res) => {
 };
 
 
-
 export const updateProfile = async (req, res) => {
     try {
         const { name, status, profilePic } = req.body;
         const userId = req.user._id;
 
-        // Validation: Ensure at least one field is provided
-        if (!name && !status && !profilePic) {
-            return res.status(400).json({ message: "No update data provided" });
-        }
-
         const updateData = {};
-        if (name) updateData.name = name;
-        if (status) updateData.status = status;
+        if (name !== undefined) updateData.name = name;
+        if (status !== undefined) updateData.status = status;
 
-        // Handle profilePic upload to Cloudinary if provided
-        if (profilePic) {
+        if (profilePic !== undefined) {
             const uploadResponse = await cloudinary.uploader.upload(profilePic);
             updateData.profilePic = uploadResponse.secure_url;
         }
 
-        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: "User not found" });
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ success: false, message: "No update data provided" });
         }
 
-        res.status(200).json({ success: true, updatedUser });
+        console.log("✅ Updating user with data:", updateData);
+
+        // **Ensure updated user is returned**
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            updateData,
+            { new: true } // ✅ Ensures MongoDB returns updated document
+        )
+        .select("name status profilePic email") // ✅ Select only necessary fields
+        .exec(); // ✅ Ensure execution
+
+        if (!updatedUser) {
+            console.error("❌ Backend Error: User not found after update.");
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        console.log("✅ Updated User from DB:", updatedUser);
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully!",
+            updatedUser,  // ✅ **Ensure this is sent to frontend**
+        });
+
     } catch (error) {
-        console.error("Error in updateProfile controller:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error("❌ Error in updateProfile controller:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
+
+
 
 export const checkAuth = async (req, res) => {
 	try {
