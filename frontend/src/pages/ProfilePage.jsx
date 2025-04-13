@@ -13,6 +13,9 @@ function ProfilePage() {
   const [newName, setNewName] = useState(user?.name || "");
   const [newStatus, setNewStatus] = useState(user?.status || "");
   const [image, setImage] = useState(user?.profilePic || null);
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [showPicOptions, setShowPicOptions] = useState(false);
+  const [viewImage, setViewImage] = useState(false);
 
   // Optional: Fetch latest user data if needed
   useEffect(() => {
@@ -87,8 +90,6 @@ function ProfilePage() {
     }
 };
 
-
-
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-green-900 via-gray-900 to-black text-white p-4">
       <div className="w-full max-w-md bg-gray-900 p-6 rounded-lg shadow-2xl border border-gray-700 ring-1 ring-green-600/40 relative">
@@ -102,14 +103,85 @@ function ProfilePage() {
           <h1 className="text-2xl font-bold text-green-500">Profile</h1>
           <p className="text-gray-400">Manage your profile information</p>
         </div>
-        <div className="flex justify-center mb-4">
-          <label htmlFor="avatar-upload" className="cursor-pointer">
+
+        {/* 3-dots menu */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => setShowAccountInfo(!showAccountInfo)}
+            className="text-gray-300  hover:bg-gray-700 transition focus:outline-none px-3 py-2 rounded-md text-lg"
+            style={{ fontSize: "24px" }}
+          >
+            &#x22EE; 
+          </button>
+        </div>
+
+        {/* Account Information Box */}
+        {showAccountInfo && (
+          <div className="absolute top-12 right-4 w-64 bg-gray-800 p-4 rounded-lg shadow-lg">
+            <h2 className="text-lg font-medium mb-4">Account Information</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between py-2 border-b border-zinc-700">
+                <span>Member Since</span>
+                <span>{user.createdAt?.split("T")[0]}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span>Account Status</span>
+                <span className="text-green-500">Active</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="relative flex justify-center mb-4">
+          {/* Profile Picture */}
+          <button
+            onClick={() => setShowPicOptions(!showPicOptions)} // Toggle options dropdown
+            className="cursor-pointer"
+          >
             <img
               src={image || user?.profilePic || defaultAvatar}
               alt="Profile"
-              className="w-24 h-24 rounded-full border-4 border-green-500 hover:border-blue-500 transition"
+              className="size-32 rounded-full object-cover border-4 border-green-500 hover:border-blue-500 transition"
             />
-          </label>
+          </button>
+
+          {/* Options Dropdown */}
+          {showPicOptions && (
+            <div className="absolute top-24 bg-gray-800 p-2 rounded-md shadow-lg text-sm">
+              <button
+                onClick={() => {
+                  setViewImage(true); // Open image view modal
+                  setShowPicOptions(false); // Close dropdown
+                }}
+                className="block w-full text-left text-gray-300 hover:text-green-500 transition px-2 py-1"
+              >
+                View Image
+              </button>
+              <label
+                htmlFor="avatar-upload"
+                className="block w-full text-left text-gray-300 hover:text-green-500 transition px-2 py-1 cursor-pointer"
+              >
+                Change Image
+              </label>
+            </div>
+          )}
+
+          {viewImage && (
+            <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-90 z-50">
+              <button
+                onClick={() => setViewImage(false)} // Close the modal
+                className="absolute top-8 right-8 text-white bg-gray-800 px-4 py-2 rounded-md hover:bg-gray-700 transition"
+              >
+                Close
+              </button>
+              <img
+                src={image || user?.profilePic || defaultAvatar}
+                alt="Profile"
+                className="max-w-full max-h-full object-contain rounded-md"
+              />
+            </div>
+          )}
+
+          {/* Hidden File Input (For Changing Image) */}
           <input
             type="file"
             id="avatar-upload"

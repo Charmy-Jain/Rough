@@ -14,6 +14,7 @@ function HomePage() {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const { user } = useAuthStore();
 
@@ -74,6 +75,14 @@ function HomePage() {
   const filteredChats = chats.filter((chat) =>
     chat.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  useEffect(() => {
+    if (searchTerm.trim() && filteredChats.length === 0) {
+      setErrorMessage("User not found.");
+    } else {
+      setErrorMessage(""); // Clear error message if results are found
+    }
+  }, [searchTerm, filteredChats]);
   
 
 
@@ -151,6 +160,7 @@ function HomePage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 bg-gray-800 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
+            {errorMessage && <p className="text-red-500 mt-2">{errorMessage}</p>} {/* Show error message */}
           </div>
 
           {/* Chat List */}
@@ -160,7 +170,7 @@ function HomePage() {
               className={`flex items-center p-3 cursor-pointer hover:bg-gray-800 ${activeChat?._id === chatUser.id}`}
               onClick={() => handleChatClick(chatUser)}
             >
-              <img src={chatUser.profilePic || defaultAvatar} alt={chatUser.name} className="w-12 h-12 rounded-full mr-3" />
+              <img src={chatUser.profilePic || defaultAvatar} alt={chatUser.name} className="w-12 h-12 rounded-full object-cover mr-3" />
               <div className="flex-1">
                 <p className="font-semibold text-white">{chatUser.name}</p>
                 <p className="text-sm text-gray-400">{chatUser.email}</p>
@@ -179,7 +189,7 @@ function HomePage() {
             {/* Chat Header with Call Buttons */}
             <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-4 py-3 flex justify-between items-center">
               <div className="flex items-center">
-                <img src={activeChat.profilePic || defaultAvatar} alt={activeChat.name} className="w-10 h-10 rounded-full mr-3" />
+                <img src={activeChat.profilePic || defaultAvatar} alt={activeChat.name} className="w-10 h-10 rounded-full object-cover mr-3" />
                 <h2 className="text-lg font-semibold">{activeChat.name}</h2>
               </div>
               {/* Square Call Buttons */}
@@ -202,7 +212,7 @@ function HomePage() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div>z
 
             {/* Message Input */}
             <div className="sticky bottom-0 bg-gray-900 p-4 border-t border-gray-700 flex items-center">
